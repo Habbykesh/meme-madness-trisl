@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meme Madness Trial</title>
+<style>
+  :root {
+    --ink: #0A0A10;
+    --ink2: #15151C;
+    --cream: #F3EEE1;
+    --coral: #FF5A5F;
+    --violet: #8B5CF6;
+    --amber: #F4B942;
+    --grey: #8B8A96;
+    --line: #2A2A33;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: radial-gradient(circle at 30% 20%, #1a1024, #0A0A10 55%, #060608);
+    color: var(--cream);
+    font-family: 'Courier New', monospace;
+    min-height: 100vh;
+  }
+
+  /* ---------- Gate screen ---------- */
+  #gate {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+  }
+  #gate h1 {
+    font-family: 'Arial Black', sans-serif;
+    font-size: clamp(36px, 8vw, 64px);
+    margin: 0;
+    letter-spacing: 1px;
+  }
+  #gate .madness { background: linear-gradient(90deg, var(--coral), var(--violet)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  #gate p { color: var(--grey); max-width: 420px; margin: 12px 0 32px; font-size: 13px; letter-spacing: 1px; }
+  #enterBtn {
+    background: var(--coral);
+    color: var(--ink);
+    border: none;
+    border-radius: 10px;
+    padding: 18px 40px;
+    font-weight: 900;
+    font-size: 18px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  #enterBtn:hover { filter: brightness(1.1); }
+  .disclaimer { color: var(--grey); font-size: 10px; margin-top: 40px; letter-spacing: 1px; max-width: 500px; }
+
+  /* ---------- Main app ---------- */
+  #app { display: none; padding-bottom: 90px; }
+  header.topbar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 20px; border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; background: rgba(10,10,16,0.92); z-index: 10;
+  }
+  header.topbar .brand { font-weight: 900; font-family: 'Arial Black', sans-serif; letter-spacing: 1px; font-size: 18px; }
+  .credits-pill {
+    background: var(--ink2); border: 1px solid var(--line); border-radius: 20px;
+    padding: 6px 14px; font-size: 13px; color: var(--amber); font-weight: 700;
+  }
+
+  nav.tabs { display: flex; gap: 4px; padding: 10px 16px; overflow-x: auto; }
+  nav.tabs button {
+    background: none; border: 1px solid var(--line); color: var(--grey);
+    padding: 8px 16px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 12px; letter-spacing: 1px; white-space: nowrap;
+  }
+  nav.tabs button.active { background: var(--violet); color: var(--cream); border-color: var(--violet); }
+
+  section.view { display: none; padding: 10px 16px 20px; max-width: 900px; margin: 0 auto; }
+  section.view.active { display: block; }
+
+  .card {
+    background: var(--ink2); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px; margin-bottom: 14px;
+  }
+  .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .token-symbol { font-weight: 900; font-size: 16px; }
+  .token-price { font-size: 20px; font-weight: 700; }
+  .price-up { color: #4ADE80; }
+  .price-down { color: var(--coral); }
+  .countdown { font-size: 12px; color: var(--grey); }
+  .cutoff { color: var(--coral); }
+
+  .predict-row { display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
+  .predict-row input {
+    background: var(--ink); border: 1px solid var(--line); border-radius: 8px;
+    padding: 8px 10px; color: var(--cream); font-family: inherit; width: 90px;
+  }
+  .btn-up, .btn-down {
+    border: none; border-radius: 8px; padding: 8px 16px; font-weight: 900; cursor: pointer; font-family: inherit;
+  }
+  .btn-up { background: #4ADE80; color: var(--ink); }
+  .btn-down { background: var(--coral); color: var(--ink); }
+  .btn-up:disabled, .btn-down:disabled, .predict-row input:disabled { opacity: 0.35; cursor: not-allowed; }
+  .placed-tag { font-size: 11px; color: var(--amber); margin-top: 6px; }
+
+  .duration-select { display: flex; gap: 6px; margin-bottom: 14px; }
+  .duration-select button { background: var(--ink2); border: 1px solid var(--line); color: var(--grey); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-family: inherit; }
+  .duration-select button.active { background: var(--amber); color: var(--ink); border-color: var(--amber); }
+
+  .battle-vs { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .battle-token { flex: 1; text-align: center; }
+  .battle-token .sym { font-size: 18px; font-weight: 900; }
+  .vs-label { color: var(--grey); font-size: 12px; }
+  .vol-bar-track { background: var(--ink); border-radius: 6px; height: 10px; overflow: hidden; margin-top: 8px; }
+  .vol-bar-fill { height: 100%; }
+  .vol-bar-fill.a { background: var(--coral); }
+  .vol-bar-fill.b { background: var(--violet); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+  th { color: var(--grey); font-weight: 400; font-size: 11px; letter-spacing: 1px; }
+  tr.me { background: rgba(244,185,66,0.08); }
+  .rank-1 { color: var(--amber); }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat-box { background: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 12px; text-align: center; }
+  .stat-box .val { font-size: 22px; font-weight: 900; }
+  .stat-box .lbl { font-size: 10px; color: var(--grey); letter-spacing: 1px; margin-top: 4px; }
+
+  /* ---------- Music player ---------- */
+  #player {
+    position: fixed; bottom: 12px; right: 12px; left: 12px; z-index: 50;
+    display: flex; align-items: center; gap: 10px; justify-content: center;
+    background: var(--ink2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px;
+    max-width: 480px; margin: 0 auto;
+  }
+  #player button { background: none; border: none; color: var(--cream); cursor: pointer; font-size: 16px; }
+  #player .track { font-size: 11px; color: var(--grey); flex: 1; text-align: center; }
+  #player input[type=range] { width: 60px; }
+
+  footer.disclaimer-fixed {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 5;
+    font-size: 10px; color: var(--grey); text-align: center; padding: 4px;
+    background: rgba(10,10,16,0.9); border-bottom: 1px solid var(--line);
+    display: none;
+  }
+
+  /* ---------- Price pulse ---------- */
+  @keyframes pulseUp { 0% { text-shadow: 0 0 0 rgba(74,222,128,0); } 40% { text-shadow: 0 0 14px rgba(74,222,128,0.9); } 100% { text-shadow: 0 0 0 rgba(74,222,128,0); } }
+  @keyframes pulseDown { 0% { text-shadow: 0 0 0 rgba(255,90,95,0); } 40% { text-shadow: 0 0 14px rgba(255,90,95,0.9); } 100% { text-shadow: 0 0 0 rgba(255,90,95,0); } }
+  .pulse-up { animation: pulseUp 0.5s ease-out; }
+  .pulse-down { animation: pulseDown 0.5s ease-out; }
+
+  .tension { outline: 2px solid var(--coral); animation: tensionPulse 0.6s ease-in-out infinite; }
+  @keyframes tensionPulse { 0%,100% { outline-color: rgba(255,90,95,0.3); } 50% { outline-color: rgba(255,90,95,1); } }
+
+  /* ---------- Toasts ---------- */
+  #toastContainer {
+    position: fixed; top: 46px; left: 0; right: 0; z-index: 60;
+    display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none;
+  }
+  .toast {
+    background: var(--ink2); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 20px; font-weight: 900; font-size: 14px; letter-spacing: 1px;
+    animation: toastIn 0.25s ease-out, toastOut 0.4s ease-in 2.6s forwards;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  .toast.win { color: #4ADE80; border-color: #4ADE80; }
+  .toast.loss { color: var(--coral); border-color: var(--coral); }
+  .toast.push { color: var(--amber); border-color: var(--amber); }
+  .toast.battle { color: var(--violet); border-color: var(--violet); font-size: 16px; }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes toastOut { to { opacity: 0; transform: translateY(-10px); } }
+
+  .rank-up { color: #4ADE80; font-size: 11px; }
+  .rank-down { color: var(--coral); font-size: 11px; }
+
+  header.topbar .logo-img { height: 28px; width: 28px; }
+
+  /* ---------- Rules sub-navigation ---------- */
+  .tldr-card { border-color: var(--amber); background: linear-gradient(135deg, rgba(244,185,66,0.08), var(--ink2)); }
+  .sub-tabs { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 14px; padding-bottom: 2px; }
+  .sub-tabs button {
+    background: var(--ink2); border: 1px solid var(--line); color: var(--grey);
+    padding: 7px 14px; border-radius: 20px; cursor: pointer; font-family: inherit;
+    font-size: 11px; letter-spacing: 1px; white-space: nowrap; transition: all 0.15s ease;
+  }
+  .sub-tabs button:hover { border-color: var(--amber); color: var(--cream); }
+  .sub-tabs button.active { background: var(--amber); color: var(--ink); border-color: var(--amber); font-weight: 900; }
+  .rview { display: none; animation: fadeIn 0.25s ease; }
+  .rview.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  .contest-card { border-left: 3px solid var(--amber); }
+
+  /* ---------- Calculator ---------- */
+  .calc-row { margin-bottom: 12px; }
+  .calc-row label { display: block; font-size: 11px; color: var(--grey); letter-spacing: 0.5px; margin-bottom: 4px; }
+  .calc-row input {
+    width: 100%; background: var(--ink); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 12px; color: var(--cream); font-family: inherit; font-size: 14px;
+  }
+  .calc-row input:focus { outline: none; border-color: var(--amber); }
+  #calcSideSelect button { flex: 1; }
+  .calc-result {
+    margin-top: 16px; padding: 16px; background: var(--ink); border-radius: 10px;
+    border: 1px solid var(--line); text-align: center;
+  }
+  .calc-result .multiplier { font-size: 32px; font-weight: 900; color: var(--amber); }
+  .calc-result .payout { font-size: 14px; color: var(--cream); margin-top: 4px; }
+  .calc-result .note { font-size: 11px; color: var(--grey); margin-top: 8px; }
+
+  /* ---------- Quiz ---------- */
+  .quiz-progress { font-size: 11px; color: var(--grey); margin-bottom: 10px; letter-spacing: 1px; }
+  .quiz-question { font-size: 15px; color: var(--cream); font-weight: 700; margin-bottom: 14px; line-height: 1.4; }
+  .quiz-option {
+    display: block; width: 100%; text-align: left; background: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; color: var(--cream); font-family: inherit;
+    font-size: 13px; cursor: pointer; transition: all 0.15s ease;
+  }
+  .quiz-option:hover:not(:disabled) { border-color: var(--violet); background: rgba(139,92,246,0.08); }
+  .quiz-option:disabled { cursor: default; }
+  .quiz-option.correct { border-color: #4ADE80; background: rgba(74,222,128,0.12); color: #4ADE80; }
+  .quiz-option.incorrect { border-color: var(--coral); background: rgba(255,90,95,0.12); color: var(--coral); }
+  .quiz-explain { font-size: 12px; color: var(--grey); margin-top: 10px; line-height: 1.6; padding: 10px; background: var(--ink); border-radius: 8px; }
+  .quiz-next { margin-top: 14px; background: var(--violet); color: var(--cream); border: none; border-radius: 8px; padding: 10px 20px; font-weight: 900; cursor: pointer; font-family: inherit; letter-spacing: 1px; }
+  .quiz-score { text-align: center; padding: 20px 0; }
+  .quiz-score .big { font-size: 40px; font-weight: 900; color: var(--amber); }
+  .quiz-score .msg { font-size: 13px; color: var(--grey); margin-top: 8px; }
+  .quiz-retry { margin-top: 16px; background: var(--coral); color: var(--ink); border: none; border-radius: 8px; padding: 10px 24px; font-weight: 900; cursor: pointer; font-family: inherit; letter-spacing: 1px; }
+
+  /* ---------- General polish ---------- */
+  .card { transition: border-color 0.2s ease, transform 0.15s ease; }
+  button { transition: transform 0.1s ease, filter 0.15s ease, background 0.15s ease, border-color 0.15s ease; }
+  button:active { transform: scale(0.96); }
+  .btn-up:hover:not(:disabled), .btn-down:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); }
+  nav.tabs button:hover:not(.active) { border-color: var(--violet); color: var(--cream); }
+  .duration-select button:hover:not(.active) { border-color: var(--amber); color: var(--cream); }
+  section.view.active { animation: fadeIn 0.2s ease; }
+
+
+  /* ---------- Mobile polish ---------- */
+  @media (max-width: 480px) {
+    header.topbar .brand { font-size: 15px; }
+    .credits-pill { font-size: 11px; padding: 5px 10px; }
+    nav.tabs button { padding: 7px 12px; font-size: 11px; }
+    .token-price { font-size: 17px; }
+    .predict-row input { width: 76px; }
+    .btn-up, .btn-down { padding: 8px 12px; font-size: 13px; }
+    .battle-token .sym { font-size: 15px; }
+    #player { left: 6px; right: 6px; padding: 8px 10px; }
+    #player .track { font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<footer class="disclaimer-fixed" id="topDisclaimer">
+  UNOFFICIAL FAN MOCKUP &middot; NOT AFFILIATED WITH CADE MARKET INC &middot; NO CASH VALUE &middot; SIMULATED DATA, NOTHING IS SAVED
+</footer>
+
+<div id="toastContainer"></div>
+<div id="battleBanner" style="display:none;position:fixed;top:50px;left:0;right:0;z-index:59;text-align:center;"></div>
+
+<!-- ================= GATE ================= -->
+<div id="gate">
+  <h1>MEME<br><span class="madness">MADNESS</span></h1>
+  <p>UNOFFICIAL FAN MOCKUP &middot; 20,000 FREE TRIAL CREDITS &middot; EVERYTHING BELOW IS SIMULATED, NOTHING IS SAVED OR REAL</p>
+  <button id="enterBtn">ENTER THE ARENA 🔥</button>
+  <div class="disclaimer">
+    This is a click-around demo of how Meme Madness Trial will work. Prices, volumes, and other players are all randomly simulated in your browser — no backend, no account, no real data. Refreshing the page resets everything.
+  </div>
+</div>
+
+<!-- ================= APP ================= -->
+<div id="app">
+  <header class="topbar">
+    <div class="brand" style="display:flex;align-items:center;gap:8px;">
+      <img src="logo.svg" class="logo-img" alt="" onerror="this.style.display='none'">
+      MEME MADNESS <span style="color:var(--amber)">TRIAL</span>
+    </div>
+    <div class="credits-pill" id="creditsPill">20,000 CR</div>
+  </header>
+
+  <nav class="tabs">
+    <button data-view="markets" class="active">🔥 MARKETS</button>
+    <button data-view="battle">⚔️ BATTLE</button>
+    <button data-view="leaderboard">🏆 LEADERBOARD</button>
+    <button data-view="profile">👤 PROFILE</button>
+    <button data-view="rules">❓ RULES</button>
+  </nav>
+
+  <!-- MARKETS -->
+  <section class="view active" id="view-markets">
+    <div class="duration-select" id="durationSelect"></div>
+    <div id="marketsList"></div>
+  </section>
+
+  <!-- BATTLE -->
+  <section class="view" id="view-battle">
+    <div class="card">
+      <div class="card-head"><span class="token-symbol">⚔️ UNDERDOG BATTLE</span><span class="countdown" id="battleTimer"></span></div>
+      <div class="battle-vs">
+        <div class="battle-token">
+          <div class="sym" id="battleSymA"></div>
+          <div id="battleVolA">0</div>
+          <div class="vol-bar-track"><div class="vol-bar-fill a" id="battleBarA" style="width:50%"></div></div>
+        </div>
+        <div class="vs-label">VS</div>
+        <div class="battle-token">
+          <div class="sym" id="battleSymB"></div>
+          <div id="battleVolB">0</div>
+          <div class="vol-bar-track"><div class="vol-bar-fill b" id="battleBarB" style="width:50%"></div></div>
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--grey);margin-top:14px;">Volume = play credits staked on that token. Predict on either Underdog in Markets to add to its volume. Winner is announced automatically when the battle timer ends — no voting, no manual picks.</p>
+    </div>
+  </section>
+
+  <!-- LEADERBOARD -->
+  <section class="view" id="view-leaderboard">
+    <div class="card">
+      <table>
+        <thead><tr><th>#</th><th>PLAYER</th><th style="text-align:right">NET CREDITS</th></tr></thead>
+        <tbody id="leaderboardBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- PROFILE -->
+  <section class="view" id="view-profile">
+    <div class="card">
+      <div class="stat-grid">
+        <div class="stat-box"><div class="val" id="statCredits">20,000</div><div class="lbl">CREDITS</div></div>
+        <div class="stat-box"><div class="val" id="statPredictions">0</div><div class="lbl">PREDICTIONS</div></div>
+        <div class="stat-box"><div class="val" id="statWins">0</div><div class="lbl">WINS</div></div>
+        <div class="stat-box"><div class="val" id="statWinRate">—</div><div class="lbl">WIN RATE</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RULES -->
+  <section class="view" id="view-rules">
+    <div class="card tldr-card">
+      <div class="card-head"><span class="token-symbol">⚡ TL;DR</span></div>
+      <ul style="font-size:12px;color:var(--cream);line-height:1.7;margin:0;padding-left:16px;">
+        <li>Fresh 20,000 credits every day — nothing carries over, nothing to protect.</li>
+        <li>Payouts are <b style="color:var(--amber)">pari-mutuel</b>, not fixed odds — unpopular winning side pays more.</li>
+        <li>Four contests run at once: Leaderboard, Grinder, Smasher, Underdog Submission.</li>
+        <li>~80% of windows barely move — spotting movement matters more than guessing direction.</li>
+      </ul>
+    </div>
+
+    <div class="sub-tabs" id="rulesSubTabs">
+      <button data-rview="overview" class="active">OVERVIEW</button>
+      <button data-rview="contests">CONTESTS</button>
+      <button data-rview="strategy">STRATEGY</button>
+      <button data-rview="calculator">CALCULATOR</button>
+      <button data-rview="quiz">QUIZ</button>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div class="rview active" id="rview-overview">
+      <div class="card">
+        <div class="card-head"><span class="token-symbol">🔥 HOW MARKETS WORK</span></div>
+        <p style="font-size:13px;color:var(--cream);line-height:1.6;">
+          Each Tournament Day runs 1:00 AM–11:00 PM ET with a fresh <b>20,000 credit Play Stack</b> —
+          nothing carries over between days. Predict <b style="color:#4ADE80">UP</b> or
+          <b style="color:var(--coral)">DOWN</b> on fast, instantly-resolving markets.
+        </p>
+        <p style="font-size:13px;color:var(--cream);line-height:1.6;margin-top:8px;">
+          Payouts are <b>pari-mutuel</b>, not a fixed multiplier — your payout depends on how the crowd
+          split their credits on that market. Bet with the herd and win, and your multiplier shrinks
+          toward 1×. Bet against a lopsided crowd and win, and it can pay out much bigger.
+        </p>
+        <p style="font-size:11px;color:var(--grey);margin-top:8px;">
+          Your daily score is <b style="color:var(--cream)">net credits won</b> — everything you got back
+          from settled predictions, minus everything you staked, that day.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="token-symbol">⚔️ HOW BATTLE WORKS</span></div>
+        <p style="font-size:13px;color:var(--cream);line-height:1.6;">
+          The daily lineup is <b>8 All-Stars + 2 Underdogs</b>. The two Underdogs battle for the full day —
+          whichever gets more staked volume gets <b>promoted to All-Star</b> for the next day, and the
+          <b>lowest-volume All-Star gets dropped</b> to make room. It's not just a trophy — it reshapes
+          tomorrow's lineup.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="token-symbol">📊 MOST WINDOWS DO NOTHING</span></div>
+        <p style="font-size:13px;color:var(--cream);line-height:1.6;">
+          One community analysis sampled thousands of sixty-second pump.fun price windows and found
+          roughly four out of five were essentially flat — no real movement, just the last trade price
+          carrying forward. Of the windows that did move meaningfully, direction skewed down more often
+          than up.
+        </p>
+        <p style="font-size:11px;color:var(--grey);margin-top:8px;">
+          The practical takeaway: most of the time you're not really predicting <i>direction</i>, you're
+          predicting whether the market moves <i>at all</i>.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="token-symbol">📅 SCHEDULE & PRIZE POOL</span></div>
+        <p style="font-size:12px;color:var(--grey);line-height:1.6;">
+          As of mid-August 2026, community trackers report the tournament dates and prize pool may
+          differ from what's published on Cade's official rules page — reportedly a later start week
+          and a larger total pool. These come from social posts by Cade's team, not the official rules
+          text itself, so treat them as unconfirmed. Always check
+          <a href="https://cade.market/official-rules" target="_blank" style="color:var(--amber)">cade.market/official-rules</a> directly.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="token-symbol">⚠️ HOW THIS DEMO DIFFERS</span></div>
+        <p style="font-size:12px;color:var(--grey);line-height:1.6;">
+          This mockup simplifies the real game: it uses a <b>fixed 2× payout</b> instead of real
+          pari-mutuel odds, credits don't reset on a daily tournament clock, and Battle shows a winner
+          banner rather than actually promoting/dropping tokens. Everything here is simulated and resets
+          on refresh — no real money, no wallet, no affiliation with Cade Market Inc.
+        </p>
+      </div>
+    </div>
+
+    <!-- CONTESTS -->
+    <div class="rview" id="rview-contests">
+      <div class="card">
+        <div class="card-head"><span class="token-symbol">🎯 FOUR SEPARATE CONTESTS</span></div>
+        <p style="font-size:12px;color:var(--grey);line-height:1.6;margin-bottom:10px;">
+          Same free stack, same markets, same day — but four ways to place, and playing only one leaves the other three on the table.
+        </p>
+      </div>
+      <div class="card contest-card">
+        <div class="card-head"><span class="token-symbol">🏆 Daily Leaderboard</span></div>
+        <p style="font-size:13px;color:var(--cream);line-height:1.6;">Ranked by net credits won for the day. Deepest field, biggest total payout, lowest odds of finishing top spot.</p>
+      </div>
+      <div class="card contest-card">
+        <div class="card-head"><span class="token-symbol">⚙️ Grinder Quest</span></div>
+        <p style="font-size:13px;color:var(--cream);line-height:1.6;">Most predictions placed that day, right or wrong. A volume contest, not an accuracy one.</p>
+      </div>
+      <div class="card contest-card">
+        <div class="card-head"><span class="token-symbol">💥 Smasher Quest</span></div>
+        <p style="font-size:13px;color:var(--cream);line-height:1.6;">Highest single payout multiple from one correct prediction. Rewards a longshot, unpopular-side bet that hits.</p>
+      </div>
+      <div class="card contest-card">
+        <div class="card-head"><span class="token-symbol">🐣 Underdog Submission</span></div>
+        <p style="font-size:13px;color:var(--cream);line-height:1.6;">No trading skill needed. Submit a token contract address; if it lands one of the day's two Underdog slots, that's a prize on its own, with a further bonus if it wins promotion.</p>
+      </div>
+    </div>
+
+    <!-- STRATEGY -->
+    <div class="rview" id="rview-strategy">
+      <div class="card">
+        <div class="card-head"><span class="token-symbol">🧠 STRATEGY TIPS</span></div>
+        <ul style="font-size:13px;color:var(--cream);line-height:1.8;margin:0;padding-left:18px;">
+          <li><b>Payouts are pari-mutuel</b> — the crowd's favorite pays less even when right. Look for lopsided markets and take the less-popular side when you have real conviction.</li>
+          <li><b>No day-to-day banking</b> — credits reset daily, so consistency across days beats one lucky big day. Since nothing carries over, there's little reason to play conservatively just because yesterday went badly.</li>
+          <li><b>Underdog battles matter beyond the day</b> — backing a token that gets promoted early means more exposure to it as an All-Star tomorrow.</li>
+          <li><b>Chasing Grinder Quest?</b> Volume of predictions counts regardless of accuracy — many small plays beat a few big ones, and since it's pari-mutuel, small stakes cost little.</li>
+          <li><b>Chasing Smasher Quest?</b> Multipliers are highest on the least-backed side of a thin market — stake small, take the unpopular side, and you only need to be right once.</li>
+          <li><b>Most windows are quiet</b> — the edge is in spotting which ones are likely to actually move, not in guessing direction on windows that were always going to sit still.</li>
+          <li><b>Don't stake everything on one round</b> — a single loss can wipe out several wins. Spread stakes across markets.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- CALCULATOR -->
+    <div class="rview" id="rview-calculator">
+      <div class="card">
+        <div class="card-head"><span class="token-symbol">🧮 PARI-MUTUEL PAYOUT CALCULATOR</span></div>
+        <p style="font-size:12px;color:var(--grey);line-height:1.6;margin-bottom:12px;">
+          Simplified illustration of how pari-mutuel pools generally work: everyone's stakes go into
+          one pool, and winners split the <i>entire</i> pool proportional to their share of the winning
+          side. Real Cade payouts may include additional mechanics not shown here.
+        </p>
+        <div class="calc-row">
+          <label>Total staked on UP (others + you)</label>
+          <input type="number" id="calcUp" value="6000" min="0">
+        </div>
+        <div class="calc-row">
+          <label>Total staked on DOWN (others + you)</label>
+          <input type="number" id="calcDown" value="1000" min="0">
+        </div>
+        <div class="calc-row">
+          <label>Your stake</label>
+          <input type="number" id="calcYourStake" value="100" min="1">
+        </div>
+        <div class="duration-select" id="calcSideSelect">
+          <button data-side="UP" class="active">Your side: UP</button>
+          <button data-side="DOWN">Your side: DOWN</button>
+        </div>
+        <div class="calc-result" id="calcResult"></div>
+      </div>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="rview" id="rview-quiz">
+      <div class="card" id="quizCard"></div>
+    </div>
+  </section>
+</div>
+
+<!-- MUSIC PLAYER -->
+<div id="player" style="display:none">
+  <audio id="audioEl" preload="metadata"></audio>
+  <button id="playPauseBtn">⏸</button>
+  <div class="track" id="trackName">—</div>
+  <button id="nextBtn">⏭</button>
+  <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.5">
+</div>
+
+<script>
+// ===================================================================
+// MEME MADNESS TRIAL — client-only interactive mockup
+// No backend, no auth, no persistence. Everything below is simulated
+// in the browser so you can click through the full experience.
+// ===================================================================
+
+// ---------- Music ----------
+const TRACKS = [
+  { title: "Meme Madness", src: "audio/meme-madness.mp3" },
+  { title: "Meme Madness II", src: "audio/meme-madness-2.mp3" },
+  { title: "Meme Madness III", src: "audio/meme-madness-3.mp3" },
+];
+let trackOrder = shuffle([0,1,2]);
+let trackIndex = 0;
+const audioEl = document.getElementById('audioEl');
+const playPauseBtn = document.getElementById('playPauseBtn');
+const trackName = document.getElementById('trackName');
+const volumeSlider = document.getElementById('volumeSlider');
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function loadTrack(i) {
+  const t = TRACKS[trackOrder[i]];
+  audioEl.src = t.src;
+  trackName.textContent = t.title;
+}
+function nextTrack() {
+  trackIndex = (trackIndex + 1) % TRACKS.length;
+  loadTrack(trackIndex);
+  audioEl.play();
+}
+audioEl.addEventListener('ended', nextTrack);
+playPauseBtn.addEventListener('click', () => {
+  if (audioEl.paused) { audioEl.play(); playPauseBtn.textContent = '⏸'; }
+  else { audioEl.pause(); playPauseBtn.textContent = '▶'; }
+});
+document.getElementById('nextBtn').addEventListener('click', nextTrack);
+volumeSlider.addEventListener('input', e => audioEl.volume = Number(e.target.value));
+audioEl.volume = 0.5;
+
+// ---------- Sound effects (generated tones, no extra audio files needed) ----------
+let actx = null;
+function ensureAudioContext() {
+  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+  if (actx.state === 'suspended') actx.resume();
+}
+function playTone(freq, duration, type='sine', gainPeak=0.15, delay=0) {
+  if (!actx) return;
+  const osc = actx.createOscillator();
+  const gain = actx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  const startAt = actx.currentTime + delay;
+  gain.gain.setValueAtTime(0, startAt);
+  gain.gain.linearRampToValueAtTime(gainPeak, startAt + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, startAt + duration);
+  osc.connect(gain).connect(actx.destination);
+  osc.start(startAt);
+  osc.stop(startAt + duration + 0.05);
+}
+function playSettleDing() { playTone(880, 0.15, 'sine', 0.08); }
+function playWinChime() { playTone(660, 0.15, 'triangle', 0.15); playTone(880, 0.18, 'triangle', 0.15, 0.12); playTone(1320, 0.22, 'triangle', 0.12, 0.24); }
+function playLossTone() { playTone(220, 0.3, 'sawtooth', 0.08); }
+function playPushTone() { playTone(440, 0.18, 'sine', 0.1); }
+function playTensionTick() { playTone(1000, 0.06, 'square', 0.05); }
+function playBattleFanfare() { playTone(523, 0.15, 'triangle', 0.15); playTone(659, 0.15, 'triangle', 0.15, 0.14); playTone(784, 0.3, 'triangle', 0.15, 0.28); }
+
+// ---------- Toasts ----------
+function showToast(message, type) {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = message;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+function showBattleBanner(text) {
+  const el = document.getElementById('battleBanner');
+  el.innerHTML = `<div class="toast battle" style="display:inline-block;pointer-events:none;">${text}</div>`;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 3200);
+}
+
+// ---------- Token icons ----------
+const TOKEN_ICON = {
+  PEPE: '🐸', DOGE: '🐕', WIF: '🐶', BONK: '🔨', POPCAT: '🐱',
+  MEW: '🐈', GIGA: '💪', PCADE: '🎰', UDOG1: '🐕‍🦺', UDOG2: '🦴',
+};
+
+// ---------- Gate ----------
+document.getElementById('enterBtn').addEventListener('click', () => {
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('player').style.display = 'flex';
+  document.getElementById('topDisclaimer').style.display = 'block';
+
+  ensureAudioContext();
+
+  // Started directly from this click, so autoplay is reliably allowed —
+  // no 5-second delay needed here since the click itself is the gesture.
+  loadTrack(0);
+  audioEl.play().then(() => { playPauseBtn.textContent = '⏸'; }).catch(() => {});
+
+  startEngine();
+});
+
+// ---------- Tabs ----------
+document.querySelectorAll('nav.tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('section.view').forEach(v => v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-' + btn.dataset.view).classList.add('active');
+  });
+});
+
+// ---------- Simulation state ----------
+const DURATIONS = [
+  { key: '1m', label: '1 MIN', seconds: 60, cutoff: 15 },
+  { key: '3m', label: '3 MIN', seconds: 180, cutoff: 15 },
+  { key: '5m', label: '5 MIN', seconds: 300, cutoff: 15 },
+];
+let activeDuration = DURATIONS[0];
+
+const ALL_STARS = ['PEPE','DOGE','WIF','BONK','POPCAT','MEW','GIGA','PCADE'];
+const UNDERDOGS = ['UDOG1','UDOG2'];
+
+let credits = 20000;
+let stats = { predictions: 0, wins: 0 };
+let leaderboardBots = ALL_STARS.map((_, i) => ({
+  name: 'Player' + (i + 1),
+  net: Math.floor((Math.random() - 0.3) * 6000),
+}));
+
+let markets = {}; // symbol -> current market state
+let battle = { volA: 0, volB: 0, endsAt: Date.now() + 120000 };
+
+function initMarkets() {
+  const now = Date.now();
+  ALL_STARS.concat(UNDERDOGS).forEach(sym => {
+    markets[sym] = {
+      startPrice: randomPrice(),
+      currentPrice: null,
+      opensAt: now,
+      cutoffAt: now + (activeDuration.seconds - activeDuration.cutoff) * 1000,
+      settlesAt: now + activeDuration.seconds * 1000,
+      status: 'OPEN', // OPEN -> CLOSED -> SETTLED
+      userPrediction: null, // { direction, stake }
+      lastPulse: null, // 'up' | 'down' | null, cleared each render
+      tensionPlayed: false,
+    };
+    markets[sym].currentPrice = markets[sym].startPrice;
+  });
+}
+function randomPrice() { return Math.round((5_000_000 + Math.random() * 45_000_000)); }
+
+function switchDuration(dur) {
+  activeDuration = dur;
+  initMarkets();
+  renderDurationSelect();
+}
+
+// ---------- Duration selector ----------
+function renderDurationSelect() {
+  const el = document.getElementById('durationSelect');
+  el.innerHTML = '';
+  DURATIONS.forEach(d => {
+    const b = document.createElement('button');
+    b.textContent = d.label;
+    if (d.key === activeDuration.key) b.classList.add('active');
+    b.onclick = () => switchDuration(d);
+    el.appendChild(b);
+  });
+}
+
+// ---------- Rendering ----------
+function fmtCredits(n) { return n.toLocaleString('en-US'); }
+function fmtPrice(n) { return '$' + n.toLocaleString('en-US'); }
+function fmtTime(ms) {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  const m = Math.floor(s / 60); const r = s % 60;
+  return String(m).padStart(2,'0') + ':' + String(r).padStart(2,'0');
+}
+
+function renderMarkets() {
+  const el = document.getElementById('marketsList');
+  el.innerHTML = '';
+  ALL_STARS.forEach(sym => el.appendChild(marketCard(sym)));
+}
+
+function marketCard(sym) {
+  const m = markets[sym];
+  const now = Date.now();
+  const isCutoff = now >= m.cutoffAt;
+  const timeLeft = m.settlesAt - now;
+  const priceDelta = m.currentPrice - m.startPrice;
+  const priceClass = priceDelta > 0 ? 'price-up' : priceDelta < 0 ? 'price-down' : '';
+  const pulseClass = m.lastPulse === 'up' ? 'pulse-up' : m.lastPulse === 'down' ? 'pulse-down' : '';
+  const isTension = !!m.userPrediction && m.status !== 'SETTLED' && (m.settlesAt - now) <= 10000 && (m.settlesAt - now) > 0;
+
+  const card = document.createElement('div');
+  card.className = 'card' + (isTension ? ' tension' : '');
+  card.innerHTML = `
+    <div class="card-head">
+      <span class="token-symbol">${TOKEN_ICON[sym] || '🪙'} $${sym}</span>
+      <span class="token-price ${priceClass} ${pulseClass}">${fmtPrice(m.currentPrice)}</span>
+    </div>
+    <div class="countdown">${m.status === 'SETTLED' ? 'Settling next round…' : (isCutoff ? '<span class="cutoff">PREDICTIONS CLOSED · ' : 'Closes in ') + fmtTime(m.status==='SETTLED'?0:timeLeft) + (isCutoff && m.status!=='SETTLED' ? '</span>' : '')}</div>
+    <div class="predict-row">
+      <input type="number" min="1" max="${credits}" placeholder="stake" id="stake-${sym}" ${isCutoff || m.userPrediction ? 'disabled' : ''}>
+      <button class="btn-up" ${isCutoff || m.userPrediction ? 'disabled' : ''} onclick="placePrediction('${sym}','UP')">↑ UP</button>
+      <button class="btn-down" ${isCutoff || m.userPrediction ? 'disabled' : ''} onclick="placePrediction('${sym}','DOWN')">↓ DOWN</button>
+    </div>
+    ${m.userPrediction ? `<div class="placed-tag">You predicted ${m.userPrediction.direction} with ${fmtCredits(m.userPrediction.stake)} CR</div>` : ''}
+  `;
+  return card;
+}
+
+window.placePrediction = function(sym, direction) {
+  const input = document.getElementById('stake-' + sym);
+  const stake = parseInt(input.value, 10);
+  if (!stake || stake < 1) { input.style.borderColor = 'var(--coral)'; return; }
+  if (stake > credits) { input.style.borderColor = 'var(--coral)'; return; }
+
+  credits -= stake;
+  markets[sym].userPrediction = { direction, stake };
+
+  if (UNDERDOGS.includes(sym)) {
+    if (sym === UNDERDOGS[0]) battle.volA += stake; else battle.volB += stake;
+  }
+
+  updateCreditsDisplay();
+  renderMarkets();
+};
+
+function settleMarket(sym) {
+  const m = markets[sym];
+  if (m.status === 'SETTLED') return;
+  m.status = 'SETTLED';
+
+  let outcome;
+  if (m.currentPrice > m.startPrice) outcome = 'UP';
+  else if (m.currentPrice < m.startPrice) outcome = 'DOWN';
+  else outcome = 'PUSH';
+
+  if (m.userPrediction) {
+    stats.predictions++;
+    let payout = 0;
+    if (outcome === 'PUSH') {
+      payout = m.userPrediction.stake;
+      playPushTone();
+      showToast(`↔ $${sym} PUSH · ${fmtCredits(payout)} CR refunded`, 'push');
+    } else if (m.userPrediction.direction === outcome) {
+      payout = m.userPrediction.stake * 2;
+      stats.wins++;
+      playWinChime();
+      showToast(`🎉 WIN +${fmtCredits(payout - m.userPrediction.stake)} on $${sym}`, 'win');
+    } else {
+      playLossTone();
+      showToast(`❌ LOSS -${fmtCredits(m.userPrediction.stake)} on $${sym}`, 'loss');
+    }
+    credits += payout;
+  } else {
+    playSettleDing();
+  }
+
+  // start next round for this token immediately
+  const now = Date.now();
+  markets[sym] = {
+    startPrice: m.currentPrice,
+    currentPrice: m.currentPrice,
+    opensAt: now,
+    cutoffAt: now + (activeDuration.seconds - activeDuration.cutoff) * 1000,
+    settlesAt: now + activeDuration.seconds * 1000,
+    status: 'OPEN',
+    userPrediction: null,
+    lastPulse: null,
+    tensionPlayed: false,
+  };
+}
+
+function renderBattle() {
+  document.getElementById('battleSymA').textContent = (TOKEN_ICON[UNDERDOGS[0]] || '') + ' $' + UNDERDOGS[0];
+  document.getElementById('battleSymB').textContent = (TOKEN_ICON[UNDERDOGS[1]] || '') + ' $' + UNDERDOGS[1];
+  document.getElementById('battleVolA').textContent = fmtCredits(battle.volA) + ' CR';
+  document.getElementById('battleVolB').textContent = fmtCredits(battle.volB) + ' CR';
+  const total = battle.volA + battle.volB || 1;
+  document.getElementById('battleBarA').style.width = (battle.volA/total*100) + '%';
+  document.getElementById('battleBarB').style.width = (battle.volB/total*100) + '%';
+  document.getElementById('battleTimer').textContent = fmtTime(battle.endsAt - Date.now());
+}
+
+let previousRanks = new Map();
+
+function renderLeaderboard() {
+  const rows = leaderboardBots.map(b => ({ name: b.name, net: b.net, me: false }));
+  rows.push({ name: 'YOU', net: credits - 20000, me: true });
+  rows.sort((a,b) => b.net - a.net);
+
+  const body = document.getElementById('leaderboardBody');
+  body.innerHTML = rows.map((r,i) => {
+    const rank = i + 1;
+    const prev = previousRanks.get(r.name);
+    let arrow = '';
+    if (prev !== undefined && prev !== rank) {
+      arrow = prev > rank ? ' <span class="rank-up">▲</span>' : ' <span class="rank-down">▼</span>';
+    }
+    previousRanks.set(r.name, rank);
+    return `
+      <tr class="${r.me ? 'me' : ''}">
+        <td class="${i===0?'rank-1':''}">${rank}${arrow}</td>
+        <td>${r.name}</td>
+        <td style="text-align:right;color:${r.net>=0?'#4ADE80':'var(--coral)'}">${r.net>=0?'+':''}${fmtCredits(r.net)}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderProfile() {
+  document.getElementById('statCredits').textContent = fmtCredits(credits);
+  document.getElementById('statPredictions').textContent = stats.predictions;
+  document.getElementById('statWins').textContent = stats.wins;
+  document.getElementById('statWinRate').textContent = stats.predictions ? Math.round(stats.wins/stats.predictions*100) + '%' : '—';
+}
+
+function updateCreditsDisplay() {
+  document.getElementById('creditsPill').textContent = fmtCredits(credits) + ' CR';
+}
+
+// ---------- Rules sub-tabs ----------
+document.querySelectorAll('#rulesSubTabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#rulesSubTabs button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.rview').forEach(v => v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('rview-' + btn.dataset.rview).classList.add('active');
+    if (btn.dataset.rview === 'quiz') renderQuiz();
+  });
+});
+
+// ---------- Pari-mutuel calculator ----------
+let calcSide = 'UP';
+document.querySelectorAll('#calcSideSelect button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#calcSideSelect button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    calcSide = btn.dataset.side;
+    btn.textContent = 'Your side: ' + calcSide;
+    runCalculator();
+  });
+});
+['calcUp','calcDown','calcYourStake'].forEach(id => {
+  document.getElementById(id).addEventListener('input', runCalculator);
+});
+
+function runCalculator() {
+  const up = Math.max(0, parseFloat(document.getElementById('calcUp').value) || 0);
+  const down = Math.max(0, parseFloat(document.getElementById('calcDown').value) || 0);
+  const yourStake = Math.max(0, parseFloat(document.getElementById('calcYourStake').value) || 0);
+  const total = up + down;
+  const winningPool = calcSide === 'UP' ? up : down;
+  const result = document.getElementById('calcResult');
+
+  if (winningPool <= 0 || total <= 0) {
+    result.innerHTML = `<div class="note">Enter pool sizes above to see a payout example.</div>`;
+    return;
+  }
+
+  const multiplier = total / winningPool;
+  const payout = yourStake * multiplier;
+
+  result.innerHTML = `
+    <div class="multiplier">${multiplier.toFixed(2)}×</div>
+    <div class="payout">A ${fmtCredits(yourStake)} CR stake on ${calcSide} → ${fmtCredits(Math.round(payout))} CR back if ${calcSide} wins</div>
+    <div class="note">Multiplier = total pool ÷ winning-side pool. Smaller winning side = bigger multiplier.</div>
+  `;
+}
+
+// ---------- Quiz ----------
+const QUIZ_QUESTIONS = [
+  {
+    q: "Your credits carry over if you don't spend them today. True or false?",
+    options: ["True — save them for tomorrow", "False — they reset to 20,000 for everyone every day"],
+    correct: 1,
+    explain: "Every Tournament Day starts everyone fresh at 20,000 credits. Nothing banks, nothing carries — so there's little reason to play it safe just because yesterday went badly."
+  },
+  {
+    q: "You and the crowd both bet UP, and UP wins. What happens to your payout multiplier?",
+    options: ["It shrinks toward 1× — the whole crowd is splitting the pool", "It grows huge no matter what"],
+    correct: 0,
+    explain: "Pari-mutuel payouts depend on the split. If almost everyone backed the winning side, that side splits a pool close to its own size — multiplier shrinks toward 1×."
+  },
+  {
+    q: "Which contest rewards you just for placing lots of predictions, correct or not?",
+    options: ["Smasher Quest", "Grinder Quest", "Underdog Submission"],
+    correct: 1,
+    explain: "Grinder Quest ranks entrants by total qualifying predictions placed that day — accuracy doesn't matter, only volume."
+  },
+  {
+    q: "What happens to the winning Underdog at the end of Battle Mode?",
+    options: ["Nothing, it's just bragging rights", "It gets promoted to All-Star, replacing the lowest-volume All-Star"],
+    correct: 1,
+    explain: "The Underdog with the highest Counted Volume is promoted to All-Star for the next day, and the lowest-volume current All-Star gets dropped."
+  },
+  {
+    q: "Roughly what share of 60-second windows were found to barely move at all, per one community sample?",
+    options: ["About 20%", "About 50%", "About 80%"],
+    correct: 2,
+    explain: "Roughly four out of five sampled windows were essentially flat — meaning most of the time you're predicting whether anything happens at all, not just direction."
+  },
+  {
+    q: "Which quest rewards taking the least-backed side of a thin market and getting it right once?",
+    options: ["Grinder Quest", "Smasher Quest", "Daily Leaderboard"],
+    correct: 1,
+    explain: "Smasher Quest is won by the single highest payout multiple that day — and multipliers are highest on the least-backed side of a thin pari-mutuel pool."
+  },
+  {
+    q: "Which quest could you technically win without ever placing a single prediction?",
+    options: ["Grinder Quest", "Smasher Quest", "Underdog Submission"],
+    correct: 2,
+    explain: "Underdog Submission just needs you to submit a token contract address and vote — no trading skill or predictions required to win that category."
+  },
+  {
+    q: "How many token contract addresses can one entrant submit per Tournament Day?",
+    options: ["As many as they want", "Just one", "Up to 10"],
+    correct: 1,
+    explain: "Each entrant may submit one token contract address per Tournament Day."
+  },
+  {
+    q: "Two entrants submit the same token contract address on the same day. Who gets credit for it?",
+    options: ["Whoever has more followers", "The earliest submission by timestamp", "Both split the credit"],
+    correct: 1,
+    explain: "If the same contract address is submitted by more than one entrant, the earliest submission by timestamp is treated as the submitting entrant."
+  },
+  {
+    q: "Is a token's on-chain price action used to decide the Battle Mode winner?",
+    options: ["Yes, on-chain volume decides it", "No — only credits staked on Cade's own markets count"],
+    correct: 1,
+    explain: "Counted Volume is measured solely from the Site's own records — token prices and on-chain trading activity aren't used at all."
+  },
+  {
+    q: "As of when we last checked, is the reported $120,000 prize pool officially confirmed on Cade's rules page?",
+    options: ["Yes, it's written into the official rules", "No — it's from a team member's social post, rules page still shows a lower figure"],
+    correct: 1,
+    explain: "The official rules document still states a different total; the higher figure comes from a COO's post on X, not the rules text itself. Worth double-checking the source before treating it as final."
+  },
+  {
+    q: "In this demo, does the calculator or the Battle tab actually match the real payout math?",
+    options: ["Yes, both are built exactly like the real thing", "The calculator illustrates real pari-mutuel math, but Markets/Battle in the demo use simplified fixed payouts"],
+    correct: 1,
+    explain: "The Calculator sub-tab shows how real pari-mutuel payouts work, but the live Markets and Battle tabs in this demo use a simplified fixed 2× payout for playability, not the real pooled odds."
+  },
+  {
+    q: "Your daily leaderboard score is based on what, exactly?",
+    options: ["Total credits staked, win or lose", "Net credits won — returned minus staked", "Number of predictions placed"],
+    correct: 1,
+    explain: "Score for the day is net credits won: everything returned from settled predictions, minus everything staked to make them."
+  },
+  {
+    q: "If most 60-second windows barely move, what does that suggest about your edge?",
+    options: ["Predict direction as confidently as possible every time", "Spotting which windows are likely to move matters more than guessing direction"],
+    correct: 1,
+    explain: "Since most windows are flat, the real skill is recognizing which specific windows have conditions likely to produce movement — not just calling up or down on windows that were always going to sit still."
+  },
+];
+
+let quizIndex = 0;
+let quizScore = 0;
+let quizAnswered = false;
+
+function renderQuiz() {
+  quizIndex = 0;
+  quizScore = 0;
+  renderQuizQuestion();
+}
+
+function renderQuizQuestion() {
+  quizAnswered = false;
+  const card = document.getElementById('quizCard');
+
+  if (quizIndex >= QUIZ_QUESTIONS.length) {
+    const pct = Math.round((quizScore / QUIZ_QUESTIONS.length) * 100);
+    let msg = "Solid grasp of the real mechanics.";
+    if (pct < 50) msg = "Worth another pass through Overview before you play.";
+    else if (pct < 100) msg = "Good — a couple details worth a re-read.";
+    else msg = "Perfect score — you know this format cold.";
+    card.innerHTML = `
+      <div class="quiz-score">
+        <div class="big">${quizScore}/${QUIZ_QUESTIONS.length}</div>
+        <div class="msg">${msg}</div>
+        <button class="quiz-retry" onclick="renderQuiz()">TRY AGAIN</button>
+      </div>
+    `;
+    return;
+  }
+
+  const q = QUIZ_QUESTIONS[quizIndex];
+  card.innerHTML = `
+    <div class="quiz-progress">QUESTION ${quizIndex + 1} OF ${QUIZ_QUESTIONS.length} · SCORE ${quizScore}</div>
+    <div class="quiz-question">${q.q}</div>
+    <div id="quizOptions"></div>
+    <div id="quizExplain"></div>
+  `;
+  const optsEl = document.getElementById('quizOptions');
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-option';
+    btn.textContent = opt;
+    btn.onclick = () => answerQuiz(i);
+    optsEl.appendChild(btn);
+  });
+}
+
+window.answerQuiz = function(choiceIndex) {
+  if (quizAnswered) return;
+  quizAnswered = true;
+  const q = QUIZ_QUESTIONS[quizIndex];
+  const isCorrect = choiceIndex === q.correct;
+  if (isCorrect) quizScore++;
+
+  document.querySelectorAll('.quiz-option').forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.correct) btn.classList.add('correct');
+    else if (i === choiceIndex) btn.classList.add('incorrect');
+  });
+
+  document.getElementById('quizExplain').innerHTML = `
+    <div class="quiz-explain">${isCorrect ? '✅ Correct. ' : '❌ Not quite. '}${q.explain}</div>
+    <button class="quiz-next" onclick="nextQuizQuestion()">${quizIndex + 1 >= QUIZ_QUESTIONS.length ? 'SEE SCORE' : 'NEXT'}</button>
+  `;
+};
+
+window.nextQuizQuestion = function() {
+  quizIndex++;
+  renderQuizQuestion();
+};
+
+runCalculator();
+
+function startEngine() {
+  renderDurationSelect();
+  initMarkets();
+  updateCreditsDisplay();
+
+  setInterval(() => {
+    const now = Date.now();
+
+    // drift all prices (random walk) + track pulse direction
+    Object.keys(markets).forEach(sym => {
+      const m = markets[sym];
+      const before = m.currentPrice;
+      const pct = (Math.random() - 0.5) * 0.02; // +/-1% per tick
+      m.currentPrice = Math.max(1, Math.round(m.currentPrice * (1 + pct)));
+      m.lastPulse = m.currentPrice > before ? 'up' : m.currentPrice < before ? 'down' : null;
+
+      // tension effect: 10s warning, once per market, only if user has skin in it
+      if (m.userPrediction && !m.tensionPlayed && m.status !== 'SETTLED' && (m.settlesAt - now) <= 10000 && (m.settlesAt - now) > 0) {
+        playTensionTick();
+        m.tensionPlayed = true;
+      }
+
+      if (now >= m.settlesAt && m.status !== 'SETTLED') settleMarket(sym);
+    });
+
+    // simulate "other players" adding to battle volume + leaderboard drift
+    battle.volA += Math.floor(Math.random() * 40);
+    battle.volB += Math.floor(Math.random() * 40);
+    if (now >= battle.endsAt) {
+      const winner = battle.volA >= battle.volB ? UNDERDOGS[0] : UNDERDOGS[1];
+      playBattleFanfare();
+      showBattleBanner(`⚔️ BATTLE WINNER: $${winner} ${TOKEN_ICON[winner] || ''}`);
+      battle = { volA: 0, volB: 0, endsAt: now + 120000 };
+    }
+    leaderboardBots.forEach(b => b.net += Math.floor((Math.random()-0.45)*300));
+
+    renderMarkets();
+    renderBattle();
+    renderLeaderboard();
+    renderProfile();
+    updateCreditsDisplay();
+  }, 1000);
+}
+</script>
+</body>
+</html>
