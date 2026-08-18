@@ -706,11 +706,42 @@ function fmtTime(ms) {
 
 function renderMarkets() {
   const el = document.getElementById('marketsList');
-  el.innerHTML = '';
-  ALL_STARS.forEach(sym => el.appendChild(marketCard(sym)));
+  ALL_STARS.forEach(sym => {
+    let card = document.getElementById('card-' + sym);
+    if (!card) {
+      card = buildMarketCard(sym);
+      el.appendChild(card);
+    }
+    updateMarketCard(sym);
+  });
 }
 
-function marketCard(sym) {
+// Built ONCE per market. Contains the stake input, which must never be
+// recreated — recreating it on every tick is what was wiping out
+// whatever the user had typed (and stealing focus) every second.
+function buildMarketCard(sym) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.id = 'card-' + sym;
+  card.innerHTML = `
+    <div class="card-head">
+      <span class="token-symbol">${TOKEN_ICON[sym] || '🪙'} $${sym}</span>
+      <span class="token-price" id="price-${sym}"></span>
+    </div>
+    <div class="countdown" id="countdown-${sym}"></div>
+    <div class="predict-row">
+      <input type="number" min="1" placeholder="stake" id="stake-${sym}">
+      <button class="btn-up" id="btnup-${sym}" onclick="placePrediction('${sym}','UP')">↑ UP</button>
+      <button class="btn-down" id="btndown-${sym}" onclick="placePrediction('${sym}','DOWN')">↓ DOWN</button>
+    </div>
+    <div class="placed-tag" id="placed-${sym}" style="display:none;"></div>
+  `;
+  return card;
+}
+
+// Called every tick. Only touches text/classes/disabled state —
+// never recreates the input, so typing and focus survive re-renders.
+function updateMarketCard(sym) {
   const m = markets[sym];
   const now = Date.now();
   const isCutoff = now >= m.cutoffAt;
@@ -719,30 +750,46 @@ function marketCard(sym) {
   const priceClass = priceDelta > 0 ? 'price-up' : priceDelta < 0 ? 'price-down' : '';
   const pulseClass = m.lastPulse === 'up' ? 'pulse-up' : m.lastPulse === 'down' ? 'pulse-down' : '';
   const isTension = !!m.userPrediction && m.status !== 'SETTLED' && (m.settlesAt - now) <= 10000 && (m.settlesAt - now) > 0;
+  const locked = isCutoff || !!m.userPrediction;
 
-  const card = document.createElement('div');
-  card.className = 'card' + (isTension ? ' tension' : '');
-  card.innerHTML = `
-    <div class="card-head">
-      <span class="token-symbol">${TOKEN_ICON[sym] || '🪙'} $${sym}</span>
-      <span class="token-price ${priceClass} ${pulseClass}">${fmtPrice(m.currentPrice)}</span>
-    </div>
-    <div class="countdown">${m.status === 'SETTLED' ? 'Settling next round…' : (isCutoff ? '<span class="cutoff">PREDICTIONS CLOSED · ' : 'Closes in ') + fmtTime(m.status==='SETTLED'?0:timeLeft) + (isCutoff && m.status!=='SETTLED' ? '</span>' : '')}</div>
-    <div class="predict-row">
-      <input type="number" min="1" max="${credits}" placeholder="stake" id="stake-${sym}" ${isCutoff || m.userPrediction ? 'disabled' : ''}>
-      <button class="btn-up" ${isCutoff || m.userPrediction ? 'disabled' : ''} onclick="placePrediction('${sym}','UP')">↑ UP</button>
-      <button class="btn-down" ${isCutoff || m.userPrediction ? 'disabled' : ''} onclick="placePrediction('${sym}','DOWN')">↓ DOWN</button>
-    </div>
-    ${m.userPrediction ? `<div class="placed-tag">You predicted ${m.userPrediction.direction} with ${fmtCredits(m.userPrediction.stake)} CR</div>` : ''}
-  `;
-  return card;
+  const card = document.getElementById('card-' + sym);
+  card.classList.toggle('tension', isTension);
+
+  const priceEl = document.getElementById('price-' + sym);
+  priceEl.textContent = fmtPrice(m.currentPrice);
+  priceEl.className = 'token-price ' + priceClass + ' ' + pulseClass;
+  // restart the pulse animation each tick it applies
+  if (pulseClass) { void priceEl.offsetWidth; priceEl.classList.add(pulseClass); }
+
+  document.getElementById('countdown-' + sym).innerHTML =
+    m.status === 'SETTLED'
+      ? 'Settling next round…'
+      : (isCutoff ? '<span class="cutoff">PREDICTIONS CLOSED · ' : 'Closes in ') +
+        fmtTime(m.status === 'SETTLED' ? 0 : timeLeft) +
+        (isCutoff && m.status !== 'SETTLED' ? '</span>' : '');
+
+  const stakeInput = document.getElementById('stake-' + sym);
+  stakeInput.max = credits;
+  stakeInput.disabled = locked;
+  document.getElementById('btnup-' + sym).disabled = locked;
+  document.getElementById('btndown-' + sym).disabled = locked;
+
+  const placedEl = document.getElementById('placed-' + sym);
+  if (m.userPrediction) {
+    placedEl.style.display = 'block';
+    placedEl.textContent = `You predicted ${m.userPrediction.direction} with ${fmtCredits(m.userPrediction.stake)} CR`;
+  } else {
+    placedEl.style.display = 'none';
+  }
 }
 
 window.placePrediction = function(sym, direction) {
   const input = document.getElementById('stake-' + sym);
   const stake = parseInt(input.value, 10);
-  if (!stake || stake < 1) { input.style.borderColor = 'var(--coral)'; return; }
-  if (stake > credits) { input.style.borderColor = 'var(--coral)'; return; }
+
+  input.style.borderColor = '';
+  if (!stake || stake < 1) { input.style.borderColor = 'var(--coral)'; input.focus(); return; }
+  if (stake > credits) { input.style.borderColor = 'var(--coral)'; input.focus(); return; }
 
   credits -= stake;
   markets[sym].userPrediction = { direction, stake };
@@ -752,7 +799,7 @@ window.placePrediction = function(sym, direction) {
   }
 
   updateCreditsDisplay();
-  renderMarkets();
+  updateMarketCard(sym);
 };
 
 function settleMarket(sym) {
