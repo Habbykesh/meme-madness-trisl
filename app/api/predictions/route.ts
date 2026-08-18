@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
 import { getSessionUserId } from "@/lib/auth";
 import { predictionRateLimit } from "@/lib/ratelimit";
 

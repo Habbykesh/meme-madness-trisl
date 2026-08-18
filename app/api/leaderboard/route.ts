@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { redis, LEADERBOARD_KEY, LEADERBOARD_OVERALL_KEY } from "@/lib/redis";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   const scope = req.nextUrl.searchParams.get("scope") ?? "today"; // "today" | "overall"
   const limit = Math.min(Number(req.nextUrl.searchParams.get("limit") ?? 100), 100);
