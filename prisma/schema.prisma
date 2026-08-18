@@ -17,6 +17,8 @@ model User {
   username  String   @unique
   usernameLower String @unique // enforce case-insensitive uniqueness
   email     String   @unique
+  passwordHash String?
+  googleId  String?  @unique // Google "sub" claim, set on first Google sign-in
   isAdmin   Boolean  @default(false)
   createdAt DateTime @default(now())
 

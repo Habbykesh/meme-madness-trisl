@@ -1,7 +1,10 @@
-import { randomBytes, createHash } from "crypto";
+import { randomBytes, createHash, scrypt as scryptCb, timingSafeEqual } from "crypto";
+import { promisify } from "util";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { prisma } from "./db";
+
+const scrypt = promisify(scryptCb);
 
 const SESSION_SECRET = new TextEncoder().encode(process.env.SESSION_SECRET!);
 const MAGIC_LINK_TTL_MIN = 15;
@@ -9,6 +12,25 @@ const SESSION_TTL_DAYS = 7;
 
 function hashToken(raw: string) {
   return createHash("sha256").update(raw).digest("hex");
+}
+
+// ── Password auth ────────────────────────────────────
+// Stored as "salt:hash" (both hex). scrypt is Node's built-in, so this
+// needs no extra dependency and no native build step.
+
+export async function hashPassword(password: string): Promise<string> {
+  const salt = randomBytes(16).toString("hex");
+  const derived = (await scrypt(password, salt, 64)) as Buffer;
+  return `${salt}:${derived.toString("hex")}`;
+}
+
+export async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  const [salt, hashHex] = stored.split(":");
+  if (!salt || !hashHex) return false;
+  const derived = (await scrypt(password, salt, 64)) as Buffer;
+  const storedBuf = Buffer.from(hashHex, "hex");
+  if (derived.length !== storedBuf.length) return false;
+  return timingSafeEqual(derived, storedBuf);
 }
 
 // ── Magic link ───────────────────────────────────────
@@ -36,6 +58,35 @@ export async function verifyMagicLink(raw: string) {
   await prisma.magicToken.update({ where: { id: record.id }, data: { usedAt: new Date() } });
 
   return { ok: true as const, userId: record.userId };
+}
+
+// ── Pending Google signup (short-lived, no DB row) ──
+// Used only for the gap between "Google approved this person" and
+// "they picked a username" — a signed token beats a DB table since it's
+// self-expiring and needs no cleanup job.
+
+type PendingGoogleSignup = { googleId: string; email: string; suggestedName?: string };
+
+export async function createPendingSignupToken(profile: PendingGoogleSignup) {
+  return new SignJWT({ ...profile, kind: "pending_google_signup" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("10m")
+    .sign(SESSION_SECRET);
+}
+
+export async function verifyPendingSignupToken(token: string): Promise<PendingGoogleSignup | null> {
+  try {
+    const { payload } = await jwtVerify(token, SESSION_SECRET);
+    if (payload.kind !== "pending_google_signup") return null;
+    return {
+      googleId: payload.googleId as string,
+      email: payload.email as string,
+      suggestedName: payload.suggestedName as string | undefined,
+    };
+  } catch {
+    return null;
+  }
 }
 
 // ── Session cookie (signed JWT, httpOnly) ───────────

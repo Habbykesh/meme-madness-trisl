@@ -1,29 +1,37 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const router = useRouter();
+  const [mode, setMode] = useState<"login" | "signup">("login");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "sent" | "error">("idle");
+  const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setStatus("idle");
+    setSubmitting(true);
+    setErrorMsg("");
 
-    const res = await fetch("/api/auth/request-link", {
+    const url = mode === "login" ? "/api/auth/login" : "/api/auth/signup";
+    const payload = mode === "login" ? { username, password } : { username, email, password };
+
+    const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, email }),
+      body: JSON.stringify(payload),
     });
 
     if (res.ok) {
-      setStatus("sent");
+      router.push("/?signedIn=1");
     } else {
       const data = await res.json();
       setErrorMsg(data.error ?? "something went wrong");
-      setStatus("error");
+      setSubmitting(false);
     }
   }
 
@@ -34,21 +42,17 @@ export default function Home() {
         3-day unofficial fan trial. 20,000 free credits daily. No wallet, no cash value.
       </p>
 
-      {status === "sent" ? (
-        <p style={{ color: "#F4B942", marginTop: 24 }}>
-          Check your email — tap the link to enter the arena.
-        </p>
-      ) : (
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 24 }}>
-          <input
-            placeholder="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            minLength={3}
-            maxLength={20}
-            style={inputStyle}
-          />
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 24 }}>
+        <input
+          placeholder="username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          required
+          minLength={3}
+          maxLength={20}
+          style={inputStyle}
+        />
+        {mode === "signup" && (
           <input
             type="email"
             placeholder="email"
@@ -57,12 +61,31 @@ export default function Home() {
             required
             style={inputStyle}
           />
-          <button type="submit" style={buttonStyle}>
-            SEND SIGN-IN LINK
-          </button>
-          {status === "error" && <p style={{ color: "#FF5A5F", fontSize: 12 }}>{errorMsg}</p>}
-        </form>
-      )}
+        )}
+        <input
+          type="password"
+          placeholder="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          minLength={8}
+          style={inputStyle}
+        />
+        <button type="submit" disabled={submitting} style={buttonStyle}>
+          {submitting ? "..." : mode === "login" ? "LOG IN" : "SIGN UP"}
+        </button>
+        {errorMsg && <p style={{ color: "#FF5A5F", fontSize: 12 }}>{errorMsg}</p>}
+      </form>
+
+      <button
+        onClick={() => {
+          setMode(mode === "login" ? "signup" : "login");
+          setErrorMsg("");
+        }}
+        style={{ background: "none", border: "none", color: "#8B8A96", fontSize: 12, marginTop: 16, cursor: "pointer", textDecoration: "underline" }}
+      >
+        {mode === "login" ? "need an account? sign up" : "already have an account? log in"}
+      </button>
     </main>
   );
 }
